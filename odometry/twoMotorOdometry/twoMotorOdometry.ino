@@ -1,8 +1,15 @@
 #include "DualMC33926MotorShield.h"
+#define SIZE 10
 
 DualMC33926MotorShield md;
 volatile long enc_count1 = 0;
 volatile long enc_count2 = 0;
+int pwmL = 150;
+int pwmR = 150;
+int queueL[SIZE];
+int queueR[SIZE];
+int qindex=0;
+
 
 void stopIfFault()
 {
@@ -11,6 +18,27 @@ void stopIfFault()
    Serial.println("fault");
    while(1);
  }
+}
+
+void odo_close_loop(){  
+  int error, totalL = 0, totalR = 0;
+  
+  for(int i = 0; i < SIZE; i++){
+    totalL += queueL[i];
+    totalR += queueR[i];
+  }
+
+  if(totalL > totalR){
+    error = (totalL - totalR) / 2;
+    pwmL -= error;
+    pwmR += error;
+  }
+
+  else if(totalL < totalR){
+    error = (totalR - totalL) / 2;
+    pwmL += error;
+    pwmR -= error;
+  }
 }
 
 void setup()
@@ -23,25 +51,29 @@ void setup()
 }
 
 void encoder_isr() {
-  static int8_t lookup_table[] = {0,0,0,1,0,0,-1,0,0,-1,0,0,1,0,0,0};
+  static int8_t lookup_table[] = {0,0,0,-1,0,0,1,0,0,1,0,0,-1,0,0,0};
   static uint8_t enc_val1 = 0;
 
   //pin 2
   uint8_t interrupt = (PIND & 0b100) >> 2;
 
   //pin 6
-  uint8_t second = (PIND & 0b1000000) >> 5;
+  uint8_t second = (PIND & 0b1000000) >> 3;
 
   enc_val1 = enc_val1 << 2;
   enc_val1 = enc_val1 | (interrupt | second);
   enc_count1 = enc_count1 + lookup_table[enc_val1 & 0b1111];
 
-  Serial.print("MR: ");
+  Serial.print("M1 : ");
+  Serial.print(interrupt);
+  Serial.print(second);
   Serial.println(enc_count1);
+
+
 }
 
 void encoder_isr2() {
-  static int8_t lookup_table[] = {0,0,0,1,0,0,-1,0,0,-1,0,0,1,0,0,0};
+  static int8_t lookup_table[] = {0,0,0,-1,0,0,1,0,0,1,0,0,-1,0,0,0};
   static uint8_t enc_val2 = 0;
 
   //pin 3
@@ -53,24 +85,102 @@ void encoder_isr2() {
   enc_val2 = enc_val2 | (interrupt | second);
   enc_count2 = enc_count2 + lookup_table[enc_val2 & 0b1111];
 
-  Serial.print("ML: ");
+  Serial.print("M2 : ");
   Serial.println(enc_count2);
 }
+void loop()
+{
+//  for (int i = 0; i <= 200; i++)
+// {
 
-  void loop() {
-   unsigned long timeRunning = millis();
-//   md.setM1Speed(150);  // Right Motor
-//   md.setM2Speed(150); // Left Motor
+  queueL[qindex] = enc_count2;
+  queueR[qindex] = enc_count1;
+  qindex = ++qindex % SIZE;
+  odo_close_loop();
+  
+  Serial.print("PWM_L: " + pwmL);
+  Serial.print("PWM_R: " + pwmR);
+
+   md.setM1Speed(pwmR);
+   md.setM2Speed(pwmL);
+   //md.setM2Speed(-150);
+   //delay(10);
+   //md.setM1Speed(0);
+   //md.setM2Speed(-150);
+   //delay(2000);
+   //md.setM2Speed(0);
    stopIfFault();
+
+
+ /*
+   if (abs(i)%200 == 100)
+   {
+     Serial.print("current: ");
+     Serial.println(md.getM1CurrentMilliamps());
+   }
+   */
    delay(1);
-   if (timeRunning > 3000) {
-    Serial.print("Time: ");
-    Serial.println(timeRunning);
-      md.setM1Speed(0);  // Right Motor
-      md.setM2Speed(0); // Left Motor
+
+
+//  }
+/*
+ for (int i = 400; i >= -400; i--)
+ {
+   md.setM1Speed(i);
+   stopIfFault();
+   if (abs(i)%200 == 100)
+   {
+     Serial.print("M1 current: ");
+     Serial.println(md.getM1CurrentMilliamps());
    }
-   else {
-      md.setM1Speed(400);  // Right Motor
-      md.setM2Speed(400); // Left Motor
+   delay(2);
+ }
+
+ for (int i = -400; i <= 0; i++)
+ {
+   md.setM1Speed(i);
+   stopIfFault();
+   if (abs(i)%200 == 100)
+   {
+     Serial.print("M1 current: ");
+     Serial.println(md.getM1CurrentMilliamps());
    }
+   delay(2);
+ }
+
+  for (int i = 0; i <= 400; i++)
+ {
+   md.setM2Speed(i);
+   stopIfFault();
+   if (abs(i)%200 == 100)
+   {
+     Serial.print("M2 current: ");
+     Serial.println(md.getM2CurrentMilliamps());
+   }
+   delay(2);
+ }
+ for (int i = 400; i >= -400; i--)
+ {
+   md.setM2Speed(i);
+   stopIfFault();
+   if (abs(i)%200 == 100)
+   {
+     Serial.print("M2 current: ");
+     Serial.println(md.getM2CurrentMilliamps());
+   }
+   delay(2);
+ }
+
+ for (int i = -400; i <= 0; i++)
+ {
+   md.setM2Speed(i);
+   stopIfFault();
+   if (abs(i)%200 == 100)
+   {
+     Serial.print("M2 current: ");
+     Serial.println(md.getM2CurrentMilliamps());
+   }
+   delay(2);
+ }
+*/
 }
