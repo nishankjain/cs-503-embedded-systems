@@ -36,7 +36,7 @@ void encoder_isr() {
   enc_val1 = enc_val1 | (interrupt | second);
   enc_count1 = enc_count1 + lookup_table[enc_val1 & 0b1111];
 
-  Serial.print("MR : ");
+  Serial.print("MR: ");
   Serial.println(enc_count1);
 }
 
@@ -53,7 +53,7 @@ void encoder_isr2() {
   enc_val2 = enc_val2 | (interrupt | second);
   enc_count2 = enc_count2 + lookup_table[enc_val2 & 0b1111];
 
-  Serial.print("ML : ");
+  Serial.print("ML: ");
   Serial.println(enc_count2);
 }
 
@@ -63,12 +63,14 @@ void encoder_isr2() {
 //   md.setM2Speed(150); // Left Motor
    stopIfFault();
    delay(1);
-   if (timeRunning > 15000) {
+   if (timeRunning > 3000) {
+    Serial.print("Time: ");
+    Serial.println(timeRunning);
       md.setM1Speed(0);  // Right Motor
       md.setM2Speed(0); // Left Motor
    }
    else {
-      md.setM1Speed(150);  // Right Motor
-      md.setM2Speed(150); // Left Motor
+      md.setM1Speed(400);  // Right Motor
+      md.setM2Speed(400); // Left Motor
    }
 }
