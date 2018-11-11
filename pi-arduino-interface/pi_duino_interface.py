@@ -12,7 +12,7 @@ rightRotations = 0
 leftRotations = 0
 time = 0
 
-circumfrence = .22225
+circ = .22225
 
 """
 RESULTS:
@@ -69,24 +69,24 @@ vl = 0.0016pwm - 0.0907
 """
 
 while True:
-   if s1.inWaiting() > 0:
-       print(s1.readline())
-       inputValue = s1.readline().decode().strip('\r\n')
-       wheel = inputValue[1]
-       if inputValue[0:4] == "Time":
-           time = int(inputValue[6:])
-           break
-       if inputValue[0] == "M":
-           val = int(inputValue[4:])
-           if wheel == "R":
-               rightRotations = val
-           elif wheel == "L":
-               leftRotations = val
-       print("Right: %d, Left: %d" % (rightRotations, leftRotations))
+	if s1.inWaiting() > 0:
+		print(s1.readline())
+		inputValue = s1.readline().decode().strip('\r\n')
+		wheel = inputValue[1]
+		if inputValue[0:4] == "Time":
+			time = int(inputValue[6:])
+			break
+		if inputValue[0] == "M":
+			val = int(inputValue[4:])
+			if wheel == "R":
+				rightRotations = val
+			elif wheel == "L":
+				leftRotations = val
+		print("Right: %d, Left: %d" % (rightRotations, leftRotations))
 
 
-velocity_right = (rightRotations)*(circumfrence/32)/(time/1000)
-velocity_left = (leftRotations)*(circumfrence/32)/(time/1000)
+velocity_right = (rightRotations)*(circ/32)/(time/1000)
+velocity_left = (leftRotations)*(circ/32)/(time/1000)
 print(time)
 print(velocity_right)
 print(velocity_left)
