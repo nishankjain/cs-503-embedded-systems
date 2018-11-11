@@ -1,15 +1,27 @@
 #include "DualMC33926MotorShield.h"
+#include "math.h"
 
 DualMC33926MotorShield md;
 volatile long enc_count1 = 0;
 volatile long enc_count2 = 0;
-int pwmL = 150;
-int pwmR = 150;
+int pwmL = 175;
+int pwmR = 175;
 int error = 0;
 int k = 1;
 int b = 1;
 unsigned long timeRunning = 0;
 int turn = 0;
+double sleft = 0;
+double sright = 0;
+int turnInt = 0;
+int circ = .22225;
+int total_enc_count1 = 0;
+int total_enc_count2 = 0;
+double x = 0;
+double y = 0;
+double theta = 0;
+double delta_theta = 0;
+double delta_d = 0;
 
 void setup() {
   Serial.begin(115200);
@@ -26,6 +38,14 @@ void stopIfFault() {
   }
 }
 
+void location() {
+  delta_d = (sleft + sright)/2;
+  delta_theta = atan2((sright - sleft)/2, 0.1143/2);
+  theta += delta_theta;
+  x += delta_d*cos(theta);
+  y += delta_d*sin(theta);
+}
+
 void encoder_isr() {
   static int8_t lookup_table[] = {0,0,0,1,0,0,-1,0,0,-1,0,0,1,0,0,0};
   static uint8_t enc_val1 = 0;
@@ -36,9 +56,16 @@ void encoder_isr() {
   enc_val1 = enc_val1 << 2;
   enc_val1 = enc_val1 | (interrupt | second);
   enc_count1 = enc_count1 + lookup_table[enc_val1 & 0b1111];
-  if (enc_count1 % 10 == 0 && turn == 0) {
+  if (enc_count1 % 8 == 0 && turn == 0) {
     odo_close_loop();
+     turnInt += 1;
   }
+  else if (turn == 1) {
+    turnInt +=1;
+  }
+  sleft += enc_count1 * circ/32;
+  total_enc_count1 += lookup_table[enc_val1 & 0b1111];
+  location();
   // odo_close_loop();
   //  Serial.print("MR: ");
 
@@ -55,6 +82,9 @@ void encoder_isr2() {
   enc_val2 = enc_val2 << 2;
   enc_val2 = enc_val2 | (interrupt | second);
   enc_count2 = enc_count2 + lookup_table[enc_val2 & 0b1111];
+  sright += enc_count2 * circ/32;
+  total_enc_count2 += lookup_table[enc_val2 & 0b1111];
+  location();
   //  if (enc_count2 % 20 == 0) {
   //   odo_close_loop();
   //  }
@@ -113,13 +143,22 @@ void odo_close_loop() {
 
 void loop() {
   unsigned long timeRunning = millis();
-  if (timeRunning > 12719) {
-    turn = 0;
+  if (timeRunning > 11699) {
+     if (turn == 0) {
+      Serial.print("X: ");
+      Serial.println(x);
+      Serial.print("Y: ");
+      Serial.println(y);
+      Serial.print("Theta: ");
+      Serial.println(theta);
+    }
+    turn = 1;
     md.setM1Speed(0);  // Right Motor
     md.setM2Speed(0);  // Left Motor
   }
-  else if (timeRunning > 8929) {
+  else if (timeRunning > 9124) {
     if (turn == 1) {
+      Serial.print(enc_count1 - turnInt*8);
       enc_count1 = 0;
       enc_count2 = 0;
     }
@@ -127,10 +166,15 @@ void loop() {
     md.setM1Speed(pwmR);
     md.setM2Speed(pwmL);
   }
-  else if (timeRunning > 7579) {
+  //else if (timeRunning > 8081) {
+  else if (turnInt >= 21) {
+    if (turn == 0) {
+      enc_count1 = 0;
+      enc_count2 = 0;
+    }
     turn = 1;
-    md.setM1Speed(pwmR);
-    md.setM2Speed(pwmL + 260);
+    md.setM1Speed(pwmR - 30);
+    md.setM2Speed(pwmL + 250 - 30);
   }
   else {
     turn = 0;
