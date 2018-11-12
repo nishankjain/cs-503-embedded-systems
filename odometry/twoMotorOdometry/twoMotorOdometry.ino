@@ -4,11 +4,11 @@
 DualMC33926MotorShield md;
 volatile long enc_count_right = 0;
 volatile long enc_count_left = 0;
-long pwmL = 150;
-long pwmR = 150;
+long pwmL = 100;
+long pwmR = 100;
 float v_error = 0;
 float k = -0.5;
-float b = 0.15;
+float b = 0.05;
 long turn = 0;
 float delta_sleft = 0;
 float delta_sright = 0;
@@ -31,7 +31,9 @@ long last_interrupt_right_time = 0;
 float interrupt_right_interval = 0;
 float interrupt_left_interval = 0;
 float wheel_base = 0.1651;
-float vref = 0.2;
+float vref = 0.12;
+const float pi = 3.1415926;
+float delta_theta_degrees = 0;
 static int8_t lookup_table[] = {0,0,0,1,0,0,-1,0,0,-1,0,0,1,0,0,0};
 
 void setup() {
@@ -56,9 +58,10 @@ void location() {
   last_enc_count_left = total_enc_count_left;
   delta_d = (delta_sleft + delta_sright) / 2;
   delta_theta = atan2((delta_sright - delta_sleft) / 2, wheel_base / 2);
+  delta_theta_degrees = delta_theta * (180 / pi);
   theta += delta_theta;
-  y += delta_d * cos(delta_theta);
-  x += delta_d * sin(delta_theta);
+  x += delta_d * cos(theta);
+  y += delta_d * sin(theta);
 //  Serial.print("Delta Theta: ");
 //  Serial.println(delta_theta);
 //  Serial.print("X: ");
@@ -70,8 +73,18 @@ void location() {
   }
   //Serial.print("Theta: ");
   //Serial.println(theta);
-  //Serial.print("Delta Theta: ");
-  //Serial.println(delta_theta);
+  Serial.print("Right: ");
+  Serial.print(delta_sright);
+  Serial.print(", Left: ");
+  Serial.print(delta_sleft);
+  Serial.print(", Angle: ");
+  Serial.print(delta_theta_degrees);
+  Serial.print(", X: ");
+  Serial.print(x);
+  Serial.print(", Y: ");
+  Serial.print(y);
+  Serial.print(", Delta Dist: ");
+  Serial.println(delta_d);
 }
 
 void encoder_isr_right() {
@@ -188,12 +201,12 @@ void loop() {
     location();
 //    Serial.print("Delta Theta: ");
 //    Serial.println(delta_theta);
-    Serial.print("Theta: ");
-    Serial.println(theta);
-    Serial.print("X: ");
-    Serial.println(x);
-    Serial.print("Y: ");
-    Serial.println(y);
+//    Serial.print("Theta: ");
+//    Serial.println(theta);
+//    Serial.print("X: ");
+//    Serial.println(x);
+//    Serial.print("Y: ");
+//    Serial.println(y);
   }
 
   // if (currentTime - previousTime > interval) {
