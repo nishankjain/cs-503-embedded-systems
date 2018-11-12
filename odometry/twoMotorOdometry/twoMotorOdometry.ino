@@ -4,8 +4,8 @@
 DualMC33926MotorShield md;
 volatile long enc_count_right = 0;
 volatile long enc_count_left = 0;
-long pwmL = 100;
-long pwmR = 100;
+long pwmL = 175;
+long pwmR = 175;
 float v_error = 0;
 float k = -0.5;
 float b = 0.05;
@@ -31,10 +31,19 @@ long last_interrupt_right_time = 0;
 float interrupt_right_interval = 0;
 float interrupt_left_interval = 0;
 float wheel_base = 0.1651;
-float vref = 0.12;
+float vref = 0.2;
 const float pi = 3.1415926;
 float delta_theta_degrees = 0;
 static int8_t lookup_table[] = {0,0,0,1,0,0,-1,0,0,-1,0,0,1,0,0,0};
+float innerRadiusRight = 0.0635;
+float innerDistRight = (pi * innerRadius) / 2;
+float outerRadiusRight = 0.2286;
+float outerDistRight = (pi * outerRadius) / 2;
+float turnTime = 2;
+float turnVelInner = innerDistRight / turnTime;
+float turnVelOuter = outerDistRight / turnTime;
+float pwmRTurn = long((turnVelInner + 0.0776) / 0.0016);
+float pwmLTurn = long((turnVelOuter + 0.0907) / 0.0016);
 
 void setup() {
   Serial.begin(115200);
@@ -150,12 +159,12 @@ void odo_close_loop() {
 //  Serial.println(vleft);
 
 //  On Ground
-//  pwmR = long((vright + 0.0776) / 0.0016);
-//  pwmL = long((vleft + 0.0907) / 0.0016);
+  pwmR = long((vright + 0.0776) / 0.0016);
+  pwmL = long((vleft + 0.0907) / 0.0016);
 
 //  In Air
-  pwmR = long((vright + 0.0471) / 0.0017);
-  pwmL = long((vleft + 0.0261) / 0.0016);
+//  pwmR = long((vright + 0.0471) / 0.0017);
+//  pwmL = long((vleft + 0.0261) / 0.0016);
 
 //  Serial.print("Error: ");
 //  Serial.println(v_error);
@@ -168,30 +177,30 @@ void odo_close_loop() {
 void loop() {
   currentTime = millis();
    
-  // if (y >= 1.1684 && x < 0.2032) {
-  //   turn = 1;
-  //   md.setM1Speed(pwmR - 20);
-  //   md.setM2Speed(pwmL + 230 - 20);
-  // }
-  // else if (y >= 1.1684 && x >= 0.2032 && x < 0.5588) {
-  //   turn = 0;
-  //   md.setM1Speed(pwmR);
-  //   md.setM2Speed(pwmL);
-  // }
-  // else if (y >= 1.1684 && x >= 0.5588) {
-  //   md.setM1Speed(0);
-  //   md.setM2Speed(0);
-  // }
-  // else if (y < 1.1684 && x < 0.2032) {
-  //   md.setM1Speed(pwmR);
-  //   md.setM2Speed(pwmL);
-  //   if (currentTime - previousTime > interval) {
-  //     location();
-  //     previousTime = currentTime;
-  //     last_enc_count_right = total_enc_count_right;
-  //     last_enc_count_left = total_enc_count_left;
-  //   }
-  // }
+   if (y >= 1.1684 && x < 0.2032) {
+     turn = 1;
+     md.setM1Speed(pwmRTurn);
+     md.setM2Speed(pwmLTurn);
+   }
+   else if (y >= 1.1684 && x >= 0.2032 && x < 0.5588) {
+     turn = 0;
+     md.setM1Speed(pwmR);
+     md.setM2Speed(pwmL);
+   }
+   else if (y >= 1.1684 && x >= 0.5588) {
+     md.setM1Speed(0);
+     md.setM2Speed(0);
+   }
+   else if (y < 1.1684 && x < 0.2032) {
+     md.setM1Speed(pwmR);
+     md.setM2Speed(pwmL);
+     if (currentTime - previousTime > interval) {
+       location();
+       previousTime = currentTime;
+       last_enc_count_right = total_enc_count_right;
+       last_enc_count_left = total_enc_count_left;
+     }
+   }
 
   md.setM1Speed(pwmR);
   md.setM2Speed(pwmL);
