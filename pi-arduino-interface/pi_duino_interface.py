@@ -61,11 +61,21 @@ Left: 0.4651808772075975
 """
 
 """
+On Ground
 Right Motor Equation:
 vr = 0.0016pwm - 0.0776
 
 Left Motor Equation:
 vl = 0.0016pwm - 0.0907
+"""
+
+"""
+In Air
+Right Motor Equation:
+vr = 0.0017pwm - 0.0471
+
+Left Motor Equation:
+vl = 0.0016pwm - 0.0261
 """
 
 while True:
