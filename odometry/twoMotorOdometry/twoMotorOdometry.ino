@@ -17,30 +17,30 @@ const float circ = .22225;
 const float wheel_base = 0.1651;
 const float innerRadiusRight = 0.0635;
 const float outerRadiusRight = 0.2286;
-const float innerRadiusLeft = 0.314325;
-const float outerRadiusLeft = 0.47625;
+const float innerRadiusLeft = 0.36;  //13.25  = 0.33655
+const float outerRadiusLeft = 0.65;   //19.625 0.498475;
 const float turnAngleTolerance = 0.1; // 5.73 degrees
 static int8_t lookup_table[] = {0,0,0,1,0,0,-1,0,0,-1,0,0,1,0,0,0};
 
 // Initializations
 float v_error = 0;
-float k = -0.5;
-float b = 0.05;
+float k = -0.2;  //-.4
+float b = 0.1;
 float delta_sleft = 0;
 float delta_sright = 0;
 float x = 0;
 float y = 0;
-float theta = 0;
+float theta = 0; //pi/2;
 float delta_theta = 0;
 float delta_d = 0;
 float previousTime = 0;
 float currentTime = 0;
-float interval = 100;
+float interval = 50;
 float actualInterval = 0;
 float vref = 0.2;
 float theta_degrees = 0;
 int turn = 0;
-int right = 0;
+int right = 1;
 
 // Initial PWMs
 long pwmR = long((vref + 0.0776) / 0.0016);
@@ -58,11 +58,11 @@ float pwmLRightTurn = long((rightTurnVelOuter + 0.0907) / 0.0016);
 // Values for Left Turn
 float innerDistLeft = (pi * innerRadiusLeft) / 2; // In meters
 float outerDistLeft = (pi * outerRadiusLeft) / 2; // In meters
-float leftTurnTime = 1;  // In seconds
+float leftTurnTime = 2;  // In seconds
 float leftTurnVelInner = innerDistLeft / leftTurnTime;
 float leftTurnVelOuter = outerDistLeft / leftTurnTime;
-float pwmRLeftTurn = long((leftTurnVelInner + 0.0776) / 0.0016);
-float pwmLLeftTurn = long((leftTurnVelOuter + 0.0907) / 0.0016);
+float pwmRLeftTurn = long((leftTurnVelOuter + 0.0776) / 0.0016);
+float pwmLLeftTurn = long((leftTurnVelInner + 0.0907) / 0.0016);
 
 void setup() {
   Serial.begin(115200);
@@ -94,14 +94,7 @@ void location() {
     odo_close_loop();
   }
 
-  Serial.print("X: ");
-  Serial.print(x);
-  Serial.print(", Y: ");
-  Serial.print(y);
-  Serial.print(", Angle: ");
-  Serial.print(theta_degrees);
-  Serial.print(", Delta Dist: ");
-  Serial.println(delta_d);
+
 }
 
 void encoder_isr_right() {
@@ -174,9 +167,9 @@ void updateLocation() {
 void loop() {
   currentTime = millis();
 
-  while(right == 1) {
+if (right == 1) {
   //  Start moving straight for 46 inches
-    if (y < 1.1684) {
+    if (y < 1.14) {
       md.setM1Speed(pwmR);
       md.setM2Speed(pwmL);
       updateLocation();
@@ -199,7 +192,7 @@ void loop() {
       updateLocation();
     }
   //  Stop turning right after 90 degrees and start moving straight
-    else if (theta < (-pi / 2) && x < 0.63) {
+    else if (x > -0.66) {  //theta < (-pi / 2) &&
       if (turn == 1) {
         Serial.print("X: ");
         Serial.print(x);
@@ -231,9 +224,9 @@ void loop() {
       md.setM1Speed(0);
       md.setM2Speed(0);
     }
-  }
+}
 
-  while(right == 0) {
+else {
   //  Start moving straight for 46 inches
     if (x < 0.53975) {
       md.setM1Speed(pwmR);
@@ -241,7 +234,7 @@ void loop() {
       updateLocation();
     }
   //  Start turning right after 46 inches of straight path
-    else if (theta < (pi / 2)) {
+    else if (theta < pi) {
       if (turn == 0) {
         Serial.print("X: ");
         Serial.print(x);
@@ -258,7 +251,7 @@ void loop() {
       updateLocation();
     }
   //  Stop turning right after 90 degrees and start moving straight
-    else if (theta > (pi / 2) && y < 1.6002) {
+    else if (y > -1.50) {
       if (turn == 1) {
         Serial.print("X: ");
         Serial.print(x);
