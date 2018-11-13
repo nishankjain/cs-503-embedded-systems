@@ -30,7 +30,7 @@ float delta_sleft = 0;
 float delta_sright = 0;
 float x = 0;
 float y = 0;
-float theta = pi/2;
+float theta = 0;
 float delta_theta = 0;
 float delta_d = 0;
 float previousTime = 0;
@@ -42,7 +42,7 @@ float actualInterval = 0;
 float vref = 0.2;
 float theta_degrees = 0;
 int turn = 0;
-int right = 0;
+int right = 1;
 
 // Initial PWMs
 long pwmR = long((vref + 0.0776) / 0.0016);
@@ -178,7 +178,7 @@ if (right == 1) {
       updateLocation();
     }
   //  Start turning right after 46 inches of straight path
-    else if (theta > (-pi / 2)) {
+    else if (theta > (-pi / 2) && x > -0.35) {
       if (turn == 0) {
         Serial.print("X: ");
         Serial.print(x);
