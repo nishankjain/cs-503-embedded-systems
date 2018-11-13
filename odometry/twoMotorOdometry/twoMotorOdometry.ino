@@ -2,48 +2,55 @@
 #include "math.h"
 
 DualMC33926MotorShield md;
+
+// Interrupt Counters
 volatile long enc_count_right = 0;
 volatile long enc_count_left = 0;
-long pwmL = 175;
-long pwmR = 175;
+volatile long total_enc_count_right = 0;
+volatile long total_enc_count_left = 0;
+volatile long last_enc_count_right = 0;
+volatile long last_enc_count_left = 0;
+
+// Constants
+const float pi = 3.1415926;
+const float circ = .22225;
+const float wheel_base = 0.1651;
+const float innerRadiusRight = 0.0635;
+const float outerRadiusRight = 0.2286;
+const float turnAngleTolerance = 0.1; // 5.73 degrees
+static int8_t lookup_table[] = {0,0,0,1,0,0,-1,0,0,-1,0,0,1,0,0,0};
+
+// Initializations
 float v_error = 0;
 float k = -0.5;
 float b = 0.05;
-long turn = 0;
 float delta_sleft = 0;
 float delta_sright = 0;
-float circ = .22225;
-volatile long total_enc_count_right = 0;
-volatile long total_enc_count_left = 0;
 float x = 0;
 float y = 0;
 float theta = 0;
 float delta_theta = 0;
 float delta_d = 0;
-volatile long last_enc_count_right = 0;
-volatile long last_enc_count_left = 0;
 float previousTime = 0;
 float currentTime = 0;
 float interval = 1000;
 float actualInterval = 0;
-long last_interrupt_left_time = 0;
-long last_interrupt_right_time = 0;
-float interrupt_right_interval = 0;
-float interrupt_left_interval = 0;
-float wheel_base = 0.1651;
 float vref = 0.2;
-const float pi = 3.1415926;
-float delta_theta_degrees = 0;
-static int8_t lookup_table[] = {0,0,0,1,0,0,-1,0,0,-1,0,0,1,0,0,0};
-float innerRadiusRight = 0.0635;
-float innerDistRight = (pi * innerRadius) / 2;
-float outerRadiusRight = 0.2286;
-float outerDistRight = (pi * outerRadius) / 2;
-float turnTime = 2;
-float turnVelInner = innerDistRight / turnTime;
-float turnVelOuter = outerDistRight / turnTime;
-float pwmRTurn = long((turnVelInner + 0.0776) / 0.0016);
-float pwmLTurn = long((turnVelOuter + 0.0907) / 0.0016);
+float theta_degrees = 0;
+int turn = 0;
+
+// Initial PWMs
+long pwmR = long((vref + 0.0776) / 0.0016);
+long pwmL = long((vref + 0.0907) / 0.0016);
+
+// Values for Right Turn
+float innerDistRight = (pi * innerRadiusRight) / 2; // In meters
+float outerDistRight = (pi * outerRadiusRight) / 2; // In meters
+float rightTurnTime = 1;  // In seconds
+float rightTurnVelInner = innerDistRight / rightTurnTime;
+float rightTurnVelOuter = outerDistRight / rightTurnTime;
+float pwmRRightTurn = long((rightTurnVelInner + 0.0776) / 0.0016);
+float pwmLRightTurn = long((rightTurnVelOuter + 0.0907) / 0.0016);
 
 void setup() {
   Serial.begin(115200);
@@ -67,31 +74,20 @@ void location() {
   last_enc_count_left = total_enc_count_left;
   delta_d = (delta_sleft + delta_sright) / 2;
   delta_theta = atan2((delta_sright - delta_sleft) / 2, wheel_base / 2);
-  delta_theta_degrees = delta_theta * (180 / pi);
   theta += delta_theta;
-  x += delta_d * cos(theta);
-  y += delta_d * sin(theta);
-//  Serial.print("Delta Theta: ");
-//  Serial.println(delta_theta);
-//  Serial.print("X: ");
-//  Serial.println(x);
-//  Serial.print("Y: ");
-//  Serial.println(y);
+  theta_degrees = theta * (180 / pi);
+  y += delta_d * cos(theta);
+  x += delta_d * sin(theta);
   if (turn == 0) {
     odo_close_loop();
   }
-  //Serial.print("Theta: ");
-  //Serial.println(theta);
-  Serial.print("Right: ");
-  Serial.print(delta_sright);
-  Serial.print(", Left: ");
-  Serial.print(delta_sleft);
-  Serial.print(", Angle: ");
-  Serial.print(delta_theta_degrees);
-  Serial.print(", X: ");
+
+  Serial.print("X: ");
   Serial.print(x);
   Serial.print(", Y: ");
   Serial.print(y);
+  Serial.print(", Angle: ");
+  Serial.print(theta_degrees);
   Serial.print(", Delta Dist: ");
   Serial.println(delta_d);
 }
@@ -126,37 +122,13 @@ void odo_close_loop() {
   float delta_v_error = 0;
   float vright = delta_sright / (actualInterval / 1000);
   float vleft = delta_sleft / (actualInterval / 1000);
-  
-//  Serial.print("Right Vel: ");
-//  Serial.println(vright);
-//  Serial.print("Left Vel: ");
-//  Serial.println(vleft);
 
   v_error = vright - vleft;
-
-//  if (v_error < 0) {
-//    vright = vref + v_error / 2;
-//    vleft = vref - v_error / 2;
-//  }
-//  else {
-//    vright = vref - v_error / 2;
-//    vleft = vref + v_error / 2;
-//  }
-
-//  vright = vref - v_error / 2;
-//  vleft = vref + v_error / 2;
 
   delta_v_error = v_error - v_error_last;
   delta_v = -k * v_error - (b * delta_v_error);
   vright = vref - delta_v;
   vleft = vref + delta_v;
-//  vright -= delta_v;
-//  vleft += delta_v;
-  
-//  Serial.print("Right Vel: ");
-//  Serial.println(vright);
-//  Serial.print("Left Vel: ");
-//  Serial.println(vleft);
 
 //  On Ground
   pwmR = long((vright + 0.0776) / 0.0016);
@@ -165,74 +137,72 @@ void odo_close_loop() {
 //  In Air
 //  pwmR = long((vright + 0.0471) / 0.0017);
 //  pwmL = long((vleft + 0.0261) / 0.0016);
-
-//  Serial.print("Error: ");
-//  Serial.println(v_error);
-//  Serial.print("Right PWM: ");
-//  Serial.println(pwmR);
-//  Serial.print("Left PWM: ");
-//  Serial.println(pwmL);
 }
 
-void loop() {
-  currentTime = millis();
-   
-   if (y >= 1.1684 && x < 0.2032) {
-     turn = 1;
-     md.setM1Speed(pwmRTurn);
-     md.setM2Speed(pwmLTurn);
-   }
-   else if (y >= 1.1684 && x >= 0.2032 && x < 0.5588) {
-     turn = 0;
-     md.setM1Speed(pwmR);
-     md.setM2Speed(pwmL);
-   }
-   else if (y >= 1.1684 && x >= 0.5588) {
-     md.setM1Speed(0);
-     md.setM2Speed(0);
-   }
-   else if (y < 1.1684 && x < 0.2032) {
-     md.setM1Speed(pwmR);
-     md.setM2Speed(pwmL);
-     if (currentTime - previousTime > interval) {
-       location();
-       previousTime = currentTime;
-       last_enc_count_right = total_enc_count_right;
-       last_enc_count_left = total_enc_count_left;
-     }
-   }
+/*
+World Coordinate System
+        Y
+        ↑
+        ↑
+        ↑
+        ↑
+X←←←←←
+Right turns always have shorter curvature than left turns
+*/
 
-  md.setM1Speed(pwmR);
-  md.setM2Speed(pwmL);
+//  Update location after a fixed interval continuously
+void updateLocation() {
   actualInterval = currentTime - previousTime;
   if (actualInterval >= interval) {
     previousTime = currentTime;
     location();
-//    Serial.print("Delta Theta: ");
-//    Serial.println(delta_theta);
-//    Serial.print("Theta: ");
-//    Serial.println(theta);
-//    Serial.print("X: ");
-//    Serial.println(x);
-//    Serial.print("Y: ");
-//    Serial.println(y);
+  }  
+}
+
+void loop() {
+  currentTime = millis();
+
+/*  TODO
+    Correct the limiting value of x
+    x will be measured from center of lane to (red strip - bot length)
+    bot length = front wheel - back wheel
+*/
+  
+//  Start moving straight for 46 inches
+  if (y < 1.1684 && theta > (-pi / 2)) {
+    md.setM1Speed(pwmR);
+    md.setM2Speed(pwmL);
+    updateLocation();
+  }
+//  Start turning right after 46 inches of straight path
+  else if (y >= 1.1684 && theta > (-pi / 2)) {
+    turn = 1;
+    md.setM1Speed(pwmRRightTurn);
+    md.setM2Speed(pwmLRightTurn);
+    updateLocation();
+  }
+//  Stop turning right after 90 degrees and start moving straight
+  else if (y >= 1.1684 && theta > (-pi / 2 - turnAngleTolerance) && theta < (-pi / 2 + turnAngleTolerance) && x < 0.5588) {
+    turn = 0;
+    md.setM1Speed(pwmR);
+    md.setM2Speed(pwmL);
+    updateLocation();
+  }
+//  Stop moving after 22 inches of straight path
+  else if (y >= 1.1684 && x >= 0.5588) {  
+    md.setM1Speed(0);
+    md.setM2Speed(0);
   }
 
-  // if (currentTime - previousTime > interval) {
-  //   location();
-  //   previousTime = currentTime;
-  //   last_enc_count_right = total_enc_count_right;
-  //   last_enc_count_left = total_enc_count_left;
-  // }
-
-  // if (currentTime < 30000) {
-  //   md.setM1Speed(pwmR);
-  //   md.setM2Speed(pwmL);
-  // }
-  // else {
-  //   md.setM1Speed(0);
-  //   md.setM2Speed(0);
-  // }
+//  Motors testing code
+//  if (currentTime < 30000) {
+//    md.setM1Speed(pwmR);
+//    md.setM2Speed(pwmL);
+//  }
+//  else {
+//    md.setM1Speed(0);
+//    md.setM2Speed(0);
+//  }
 //  stopIfFault();
 //  delay(1);
 }
