@@ -17,6 +17,8 @@ const float circ = .22225;
 const float wheel_base = 0.1651;
 const float innerRadiusRight = 0.0635;
 const float outerRadiusRight = 0.2286;
+const float innerRadiusLeft = 0.314325;
+const float outerRadiusLeft = 0.47625;
 const float turnAngleTolerance = 0.1; // 5.73 degrees
 static int8_t lookup_table[] = {0,0,0,1,0,0,-1,0,0,-1,0,0,1,0,0,0};
 
@@ -38,6 +40,7 @@ float actualInterval = 0;
 float vref = 0.2;
 float theta_degrees = 0;
 int turn = 0;
+int right = 0;
 
 // Initial PWMs
 long pwmR = long((vref + 0.0776) / 0.0016);
@@ -51,6 +54,15 @@ float rightTurnVelInner = innerDistRight / rightTurnTime;
 float rightTurnVelOuter = outerDistRight / rightTurnTime;
 float pwmRRightTurn = long((rightTurnVelInner + 0.0776) / 0.0016);
 float pwmLRightTurn = long((rightTurnVelOuter + 0.0907) / 0.0016);
+
+// Values for Left Turn
+float innerDistLeft = (pi * innerRadiusLeft) / 2; // In meters
+float outerDistLeft = (pi * outerRadiusLeft) / 2; // In meters
+float leftTurnTime = 1;  // In seconds
+float leftTurnVelInner = innerDistLeft / leftTurnTime;
+float leftTurnVelOuter = outerDistLeft / leftTurnTime;
+float pwmRLeftTurn = long((leftTurnVelInner + 0.0776) / 0.0016);
+float pwmLLeftTurn = long((leftTurnVelOuter + 0.0907) / 0.0016);
 
 void setup() {
   Serial.begin(115200);
@@ -161,62 +173,123 @@ void updateLocation() {
 
 void loop() {
   currentTime = millis();
-  
-//  Start moving straight for 46 inches
-  if (y < 1.1684 && theta > (-pi / 2)) {
-    md.setM1Speed(pwmR);
-    md.setM2Speed(pwmL);
-    updateLocation();
-  }
-//  Start turning right after 46 inches of straight path
-  else if (y >= 1.1684 && theta > (-pi / 2)) {
-    if (turn == 0) {
-      Serial.print("X: ");
-      Serial.print(x);
-      Serial.print(", Y: ");
-      Serial.print(y);
-      Serial.print(", Angle: ");
-      Serial.print(theta_degrees);
-      Serial.print(", Delta Dist: ");
-      Serial.println(delta_d);
+
+  while(right == 1) {
+  //  Start moving straight for 46 inches
+    if (y < 1.1684) {
+      md.setM1Speed(pwmR);
+      md.setM2Speed(pwmL);
+      updateLocation();
     }
-    turn = 1;
-    md.setM1Speed(pwmRRightTurn);
-    md.setM2Speed(pwmLRightTurn);
-    updateLocation();
-  }
-//  Stop turning right after 90 degrees and start moving straight
-  else if (y >= 1.1684 && theta > (-pi / 2 - turnAngleTolerance) && theta < (-pi / 2 + turnAngleTolerance) && x < 0.7366) {
-    if (turn == 1) {
-      Serial.print("X: ");
-      Serial.print(x);
-      Serial.print(", Y: ");
-      Serial.print(y);
-      Serial.print(", Angle: ");
-      Serial.print(theta_degrees);
-      Serial.print(", Delta Dist: ");
-      Serial.println(delta_d);
+  //  Start turning right after 46 inches of straight path
+    else if (theta > (-pi / 2)) {
+      if (turn == 0) {
+        Serial.print("X: ");
+        Serial.print(x);
+        Serial.print(", Y: ");
+        Serial.print(y);
+        Serial.print(", Angle: ");
+        Serial.print(theta_degrees);
+        Serial.print(", Delta Dist: ");
+        Serial.println(delta_d);
+      }
+      turn = 1;
+      md.setM1Speed(pwmRRightTurn);
+      md.setM2Speed(pwmLRightTurn);
+      updateLocation();
     }
-    turn = 0;
-    md.setM1Speed(pwmR);
-    md.setM2Speed(pwmL);
-    updateLocation();
-  }
-//  Stop moving after 29 inches of straight path
-  else if (y >= 1.1684 && x >= 0.7366) {
-    if (turn == 0) {
-      Serial.print("X: ");
-      Serial.print(x);
-      Serial.print(", Y: ");
-      Serial.print(y);
-      Serial.print(", Angle: ");
-      Serial.print(theta_degrees);
-      Serial.print(", Delta Dist: ");
-      Serial.println(delta_d);
+  //  Stop turning right after 90 degrees and start moving straight
+    else if (theta < (-pi / 2) && x < 0.63) {
+      if (turn == 1) {
+        Serial.print("X: ");
+        Serial.print(x);
+        Serial.print(", Y: ");
+        Serial.print(y);
+        Serial.print(", Angle: ");
+        Serial.print(theta_degrees);
+        Serial.print(", Delta Dist: ");
+        Serial.println(delta_d);
+      }
+      turn = 0;
+      md.setM1Speed(pwmR);
+      md.setM2Speed(pwmL);
+      updateLocation();
     }
-    turn = 1;
-    md.setM1Speed(0);
-    md.setM2Speed(0);
+  //  Stop moving after 24.5 inches of straight path
+    else {
+      if (turn == 0) {
+        Serial.print("X: ");
+        Serial.print(x);
+        Serial.print(", Y: ");
+        Serial.print(y);
+        Serial.print(", Angle: ");
+        Serial.print(theta_degrees);
+        Serial.print(", Delta Dist: ");
+        Serial.println(delta_d);
+      }
+      turn = 1;
+      md.setM1Speed(0);
+      md.setM2Speed(0);
+    }
+  }
+
+  while(right == 0) {
+  //  Start moving straight for 46 inches
+    if (x < 0.53975) {
+      md.setM1Speed(pwmR);
+      md.setM2Speed(pwmL);
+      updateLocation();
+    }
+  //  Start turning right after 46 inches of straight path
+    else if (theta < (pi / 2)) {
+      if (turn == 0) {
+        Serial.print("X: ");
+        Serial.print(x);
+        Serial.print(", Y: ");
+        Serial.print(y);
+        Serial.print(", Angle: ");
+        Serial.print(theta_degrees);
+        Serial.print(", Delta Dist: ");
+        Serial.println(delta_d);
+      }
+      turn = 1;
+      md.setM1Speed(pwmRLeftTurn);
+      md.setM2Speed(pwmLLeftTurn);
+      updateLocation();
+    }
+  //  Stop turning right after 90 degrees and start moving straight
+    else if (theta > (pi / 2) && y < 1.6002) {
+      if (turn == 1) {
+        Serial.print("X: ");
+        Serial.print(x);
+        Serial.print(", Y: ");
+        Serial.print(y);
+        Serial.print(", Angle: ");
+        Serial.print(theta_degrees);
+        Serial.print(", Delta Dist: ");
+        Serial.println(delta_d);
+      }
+      turn = 0;
+      md.setM1Speed(pwmR);
+      md.setM2Speed(pwmL);
+      updateLocation();
+    }
+  //  Stop moving after 24.5 inches of straight path
+    else {
+      if (turn == 0) {
+        Serial.print("X: ");
+        Serial.print(x);
+        Serial.print(", Y: ");
+        Serial.print(y);
+        Serial.print(", Angle: ");
+        Serial.print(theta_degrees);
+        Serial.print(", Delta Dist: ");
+        Serial.println(delta_d);
+      }
+      turn = 1;
+      md.setM1Speed(0);
+      md.setM2Speed(0);
+    }
   }
 
 //  Motors testing code
