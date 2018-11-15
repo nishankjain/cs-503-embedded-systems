@@ -43,6 +43,7 @@ float vref = 0.2;
 float theta_degrees = 0;
 int turn = 0;
 int right = 1;
+int startTurning = 1;
 
 // Initial PWMs
 long pwmR = long((vref + 0.0776) / 0.0016);
@@ -68,6 +69,8 @@ float pwmLLeftTurn = long((leftTurnVelInner + 0.0907) / 0.0016);
 
 void setup() {
   Serial.begin(115200);
+  right = Serial.read();
+  theta = pi/2 * Serial.read();
   attachInterrupt(0, encoder_isr_right, CHANGE);
   attachInterrupt(1, encoder_isr_left, CHANGE);
   Serial.println("Dual MC33926 Motor Shield");
@@ -78,6 +81,21 @@ void stopIfFault() {
   if (md.getFault()) {
     Serial.println("fault");
     while(1);
+  }
+}
+
+void correctRotation() {
+  turnDirection = Serial.read();
+  if (turnDirection == 1) {
+    pwmR = -75;
+    pwmL = 75
+  }
+  else if (turnDirection == 2) {
+    pwmR = 75;
+    pwmL = -75;
+  }
+  else {
+    startTurning = 0;
   }
 }
 
@@ -170,7 +188,11 @@ void updateLocation() {
 void loop() {
   currentTime = millis();
 
-if (right == 1) {
+  while(startTurning) {
+    correctRotation();
+  }
+
+if (right == 1 && startTurning == 0) {
   //  Start moving straight for 46 inches
     if (y < 1.14) {
       md.setM1Speed(pwmR);
@@ -229,7 +251,7 @@ if (right == 1) {
     }
 }
 
-else {
+else if (right == 0 && startTurning == 0) {
   //  Start moving straight for 46 inches
     if (x < 0.53975) {
       md.setM1Speed(pwmR);

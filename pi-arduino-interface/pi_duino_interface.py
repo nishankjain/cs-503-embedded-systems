@@ -78,25 +78,52 @@ Left Motor Equation:
 vl = 0.0016pwm - 0.0261
 """
 
-while True:
-	if s1.inWaiting() > 0:
-		print(s1.readline())
-		inputValue = s1.readline().decode().strip('\r\n')
-		wheel = inputValue[1]
-		if inputValue[0:4] == "Time":
-			time = int(inputValue[6:])
-			break
-		if inputValue[0] == "M":
-			val = int(inputValue[4:])
-			if wheel == "R":
-				rightRotations = val
-			elif wheel == "L":
-				leftRotations = val
-		print("Right: %d, Left: %d" % (rightRotations, leftRotations))
+# while True:
+# 	if s1.inWaiting() > 0:
+# 		print(s1.readline())
+# 		inputValue = s1.readline().decode().strip('\r\n')
+# 		wheel = inputValue[1]
+# 		if inputValue[0:4] == "Time":
+# 			time = int(inputValue[6:])
+# 			break
+# 		if inputValue[0] == "M":
+# 			val = int(inputValue[4:])
+# 			if wheel == "R":
+# 				rightRotations = val
+# 			elif wheel == "L":
+# 				leftRotations = val
+# 		print("Right: %d, Left: %d" % (rightRotations, leftRotations))
+
+right = True
+
+def processImage():
+	if (abs(difference) > threshold):
+		if (difference > 0):
+			return 1
+		return 2
+	return 0
+
+def shouldTurn():
+	turn = processImage()
+	while(turn != 0):
+		s1.write(turn)
+		turn = processImage()
 
 
-velocity_right = (rightRotations)*(circ/32)/(time/1000)
-velocity_left = (leftRotations)*(circ/32)/(time/1000)
-print(time)
-print(velocity_right)
-print(velocity_left)
+def initialization():
+	if (right):
+		s1.write(1)
+		s1.write(0)
+	else:
+		s1.write(0)
+		s1.write(1)
+
+initialization()
+
+shouldTurn()
+
+# velocity_right = (rightRotations)*(circ/32)/(time/1000)
+# velocity_left = (leftRotations)*(circ/32)/(time/1000)
+# print(time)
+# print(velocity_right)
+# print(velocity_left)
