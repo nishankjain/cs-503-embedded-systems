@@ -30,16 +30,16 @@ float delta_sleft = 0;
 float delta_sright = 0;
 float x = 0;
 float y = 0;
-float theta = 0;
+float theta = 0; //0; //0;
 float delta_theta = 0;
 float delta_d = 0;
 float previousTime = 0;
 float currentTime = 0;
-float interval = 50;
-float errorCorrectInterval = 150;
+float interval = 40;
+float errorCorrectInterval = 100;
 float previousCorrTime = 0;
 float actualInterval = 0;
-float vref = 0.2;
+float vref = 0.15;
 float theta_degrees = 0;
 int turn = 0;
 int right = 1;
@@ -51,7 +51,7 @@ long pwmL = long((vref + 0.0907) / 0.0016);
 // Values for Right Turn
 float innerDistRight = (pi * innerRadiusRight) / 2; // In meters
 float outerDistRight = (pi * outerRadiusRight) / 2; // In meters
-float rightTurnTime = 1;  // In seconds
+float rightTurnTime = 1.5;  // In seconds
 float rightTurnVelInner = innerDistRight / rightTurnTime;
 float rightTurnVelOuter = outerDistRight / rightTurnTime;
 float pwmRRightTurn = long((rightTurnVelInner + 0.0776) / 0.0016);
@@ -140,8 +140,8 @@ void odo_close_loop() {
 
 //  On Ground
   pwmR = long((vright + 0.0776) / 0.0016);
-  pwmL = long((vleft + 0.0907) / 0.0016);
-
+  pwmL = long((vleft + 0.085) / 0.0016);
+//0.0907
 //  In Air
 //  pwmR = long((vright + 0.0471) / 0.0017);
 //  pwmL = long((vleft + 0.0261) / 0.0016);
@@ -178,16 +178,16 @@ if (right == 1) {
       updateLocation();
     }
   //  Start turning right after 46 inches of straight path
-    else if (theta > (-pi / 2) && x > -0.35) {
+    else if (theta > ((-pi / 2)) && x > -0.25) {
       if (turn == 0) {
-        Serial.print("X: ");
-        Serial.print(x);
-        Serial.print(", Y: ");
-        Serial.print(y);
-        Serial.print(", Angle: ");
-        Serial.print(theta_degrees);
-        Serial.print(", Delta Dist: ");
-        Serial.println(delta_d);
+//        Serial.print("X: ");
+//        Serial.print(x);
+//        Serial.print(", Y: ");
+//        Serial.print(y);
+//        Serial.print(", Angle: ");
+//        Serial.print(theta_degrees);
+//        Serial.print(", Delta Dist: ");
+//        Serial.println(delta_d);
       }
       turn = 1;
       md.setM1Speed(pwmRRightTurn);
@@ -195,16 +195,17 @@ if (right == 1) {
       updateLocation();
     }
   //  Stop turning right after 90 degrees and start moving straight
-    else if (x > -0.66) {  //theta < (-pi / 2) &&
+    else if (x > -0.68) {  //theta < (-pi / 2) &&
       if (turn == 1) {
-        Serial.print("X: ");
-        Serial.print(x);
-        Serial.print(", Y: ");
-        Serial.print(y);
-        Serial.print(", Angle: ");
-        Serial.print(theta_degrees);
-        Serial.print(", Delta Dist: ");
-        Serial.println(delta_d);
+        //interval = 100;
+//        Serial.print("X: ");
+//        Serial.print(x);
+//        Serial.print(", Y: ");
+//        Serial.print(y);
+//        Serial.print(", Angle: ");
+//        Serial.print(theta_degrees);
+//        Serial.print(", Delta Dist: ");
+//        Serial.println(delta_d);
       }
       turn = 0;
       md.setM1Speed(pwmR);
