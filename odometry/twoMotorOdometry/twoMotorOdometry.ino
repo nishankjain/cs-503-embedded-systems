@@ -81,7 +81,7 @@ boolean done_turn  = false;
 
 void setup() {
   Serial.begin(115200);
-  right = Serial.read();
+  turnTowards = Serial.read();
   theta = pi/2 * Serial.read();
   attachInterrupt(0, encoder_isr_right, CHANGE);
   attachInterrupt(1, encoder_isr_left, CHANGE);
