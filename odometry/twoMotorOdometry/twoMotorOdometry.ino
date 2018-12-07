@@ -49,7 +49,7 @@ int turn = 0;
 //const int pingPin = 8;
 
 int right = 1;
-int startTurning = 1;
+int startTurning = 0;
 
 
 // Initial PWMs
@@ -110,9 +110,9 @@ void stopIfFault() {
   else {
     startTurning = 0;
   }
-}
+}*/
 
-void location() {
+/*void location() {
   delta_sright = float(total_enc_count_right - last_enc_count_right) * circ / 32;
   delta_sleft = float(total_enc_count_left - last_enc_count_left) * circ / 32;
   last_enc_count_right = total_enc_count_right;
@@ -296,9 +296,9 @@ if (int(currentTime) % 50 == 0){
 */
 //if (right == 1) {
 
-  while(startTurning) {
-    correctRotation();
-  }
+  //while(startTurning) {
+   // correctRotation();
+ // }
 
 if (right == 1 && startTurning == 0) {
   //  Start moving straight for 46 inches
