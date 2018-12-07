@@ -103,88 +103,113 @@ vl = 0.0016pwm - 0.0261
 right = True
 
 def processImage():
-	cap = cv2.VideoCapture() 
+	camera = PiCamera()
+	camera.resolution = (480, 272)
+	camera.framerate = 1
+	#camera.rotation = 180
+	#rawCapture = PiRGBArray(camera, size=(480, 272))
+	img = np.empty((272, 480, 3), dtype = np.uint8)
+	camera.capture(img, 'bgr')
 
-	while threshold > 10:
-		ret, frame = cap.read()
+	width = 480
+	height = 272
 
-		height, width, channels = frame.shape 
-		img_center = int(width/2)
+	img_center = int(width/2)
+
+	lane_width = 390
+
+	time.sleep(0.1)
+
+	for frame in camera.capture_continuous(img, format="bgr", use_video_port = True):
+		image = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 		
 		cols_with_white = []
 		white_pixels = []
 		cols_with_yellow = []
 		yellow_pixels = []
 
-		for x in range(width-1, 0, -1):
-			for y in range(int(height/2)-15, int(height/2)+15):
-				if (frame[y][x][0] >= 220) and (frame[y][x][1] >= 220) and (frame[y][x][2] >= 220):
+		for x in range(width-1, int(width/2), -1):
+			for y in range(int(2*height/3)-15, int(2*height/3)+15):
+				#if (90 <= image[y][x][0] <= 120) and (image[y][x][1] <= 25) and (image[y][x][2] >= 200):
+				if (image[y][x][1] <= 25) and (image[y][x][2] >= 200):
 					white_pixels.append([x, y])
 					if x not in cols_with_white:
 						cols_with_white.append(x)
-				if (100 <= frame[y][x][0] <= 190) and (220 <= frame[y][x][1] <= 255) and (220 <= frame[y][x][2]):
+		for x in range(int(width/2), 0, -1):
+			for y in range(int(2*height/3)-15, int(2*height/3)+15):
+				if (20 <= image[y][x][0] <= 40) and (40 <= image[y][x][1] <= 255) and (200 <= image[y][x][2] <= 255):
 					yellow_pixels.append([x, y])
 					if x not in cols_with_yellow:
 						cols_with_yellow.append(x)
 
-		white_x = 0
-		yellow_x = 0
-		white_y = 0
-		yellow_y = 0
+		y_total = 0
+		w_total = 0
 
-		for i in range(0, len(white_pixels)):
-			if white_pixels[i][0] == cols_with_white[-1]:
-				white_x = white_pixels[i][0]
-				white_y = white_pixels[i][1]
-		for i in range(0, len(yellow_pixels)):
-			if yellow_pixels[i][0] == cols_with_yellow[0]:
-				yellow_x = yellow_pixels[i][0]
-				yellow_y = yellow_pixels[i][1]
+		for i in range(0, len(yellow_pixels), 10):
+			y_total += yellow_pixels[i][0] # add all y-values
+		for i in range(0, len(white_pixels), 10):
+			w_total += white_pixels[i][0]
 
-		if white_y == yellow_y:
-			try:
-				lane_center = round((cols_with_white[-1]+cols_with_yellow[0])/2)
-			except IndexError:
-				lane_center = img_center # default
+		try:
+			y_avg = int(y_total/(len(yellow_pixels)/10))
+		except ZeroDivisionError:
+			y_avg = 0
+		try:
+			w_avg = int(w_total/(len(white_pixels)/10))
+		except ZeroDivisionError:
+			w_avg = 0
+
+		if (len(yellow_pixels) != 0 and len(white_pixels) != 0):
+
+			lane_center = int((y_avg + w_avg)/2)
+
+		elif len(yellow_pixels) != 0:
+			# there are yellow pixels, but no white pixels
+			# get the lane center by dividing lane_width by 2 and adding it to y_avg
+			lane_center = int(lane_width/2) + y_avg
+			
+		elif len(white_pixels) != 0:
+			# there are white pixels, but no yellow pixels
+			# get the lane center by dividing lane_width by 2 and subtracting it from w_avg
+			lane_center = w_avg - int(lane_width/2)
 
 		else:
-			# find a different centerpt using the y-coords of the rightmost point
-			# in the yellow line - find the leftmost point on the white line with this
-			# y-coordinate
+			# no white or yellow pixels
+			# set lane_center to img_center as a default
+			lane_center = img_center - 10 # offset so both lines will show
 
-			for i in range(len(white_pixels)-1, 0, -1):
-				if white_pixels[i][1] == yellow_y: 
-					lane_center = round((white_x+cols_with_yellow[0])/2)
-					break
+		turn_distance = img_center - lane_center
+			
 
-		difference = lane_center - img_center
+		ctr_distance = 10 # acceptable amount of distance between the two lines
 
-		### remove this
-		# cv2.line(frame, (0, int(height/2)-15), (width-1, int(height/2)-15), (0, 0, 0), 1)
-		# cv2.line(frame, (0, int(height/2)+15), (width-1, int(height/2)+15), (0, 0, 0), 1)
-		# cv2.line(frame, (lane_center, 0), (lane_center, height-1), (255, 0, 0), 3)
-		# cv2.line(frame, (img_center, 0), (img_center, height-1), (0, 0, 255), 3)
-		
-		# cv2.imshow('frame', frame)
-
-		# if cv2.waitKey(1) & 0xFF == ord('q'):
-		# 	break
-		### end of block to remove
-
-		time.sleep(0.1)
-		threshold = 10 # how much distance between the two lines is acceptable
-		if (abs(difference) > threshold):
-			if (difference > 0):
-				return 1
+		if turn_distance > ctr_distance:
+			# turn right
 			return 2
-		return 0
+		elif turn_distance < -1 * ctr_distance:
+			# turn left
+			return 1
+		else:
+			# don't turn
+			return 0
+
+
+			# Wrote last time
+			# time.sleep(0.1)
+			# threshold = 10 # how much distance between the two lines is acceptable
+			# if (abs(difference) > threshold):
+			# 	if (difference > 0):
+			# 		return 1
+			# 	return 2
+			# return 0
 
 	### remove this
-	cap.release()
-	cv2.destroyAllWindows()
+	# cap.release()
+	# cv2.destroyAllWindows()
 
 def shouldTurn():
 	turn = processImage()
+	print(turn)
 	while(turn != 0):
 		s1.write(turn)
 		turn = processImage()
@@ -198,7 +223,7 @@ def initialization():
 		s1.write(0)
 		s1.write(1)
 
-initialization()
+# initialization()
 
 shouldTurn()
 
