@@ -44,8 +44,13 @@ float actualInterval = 0;
 float vref = 0.2;
 float theta_degrees = 0;
 int turn = 0;
-int right = 0;
-const int pingPin = 8;
+
+//int right = 0;
+//const int pingPin = 8;
+
+int right = 1;
+int startTurning = 1;
+
 
 // Initial PWMs
 long pwmR = long((vref + 0.0776) / 0.0016);
@@ -76,6 +81,8 @@ boolean done_turn  = false;
 
 void setup() {
   Serial.begin(115200);
+  right = Serial.read();
+  theta = pi/2 * Serial.read();
   attachInterrupt(0, encoder_isr_right, CHANGE);
   attachInterrupt(1, encoder_isr_left, CHANGE);
   Serial.println("Dual MC33926 Motor Shield");
@@ -88,6 +95,42 @@ void stopIfFault() {
     while(1);
   }
 }
+
+
+/*void correctRotation() {
+  turnDirection = Serial.read();
+  if (turnDirection == 1) {
+    pwmR = -75;
+    pwmL = 75
+  }
+  else if (turnDirection == 2) {
+    pwmR = 75;
+    pwmL = -75;
+  }
+  else {
+    startTurning = 0;
+  }
+}
+
+void location() {
+  delta_sright = float(total_enc_count_right - last_enc_count_right) * circ / 32;
+  delta_sleft = float(total_enc_count_left - last_enc_count_left) * circ / 32;
+  last_enc_count_right = total_enc_count_right;
+  last_enc_count_left = total_enc_count_left;
+  delta_d = (delta_sleft + delta_sright) / 2;
+  delta_theta = atan2((delta_sright - delta_sleft) / 2, wheel_base / 2);
+  theta += delta_theta;
+  theta_degrees = theta * (180 / pi);
+  y += delta_d * cos(theta);
+  x += delta_d * sin(theta);
+  if (turn == 0 && currentTime - previousCorrTime > errorCorrectInterval) {
+    odo_close_loop();
+    previousCorrTime = currentTime;
+  }
+
+
+}
+*/
 
 void encoder_isr_right() {
   static uint8_t enc_val_right = 0;
@@ -221,6 +264,7 @@ if (int(currentTime) % 50 == 0){
 
  // delayMicroseconds(2);
 
+
   digitalWrite(pingPin, HIGH);
 
  // delayMicroseconds(5);
@@ -250,7 +294,13 @@ if (int(currentTime) % 50 == 0){
   }
 }
 */
-if (right == 1) {
+//if (right == 1) {
+
+  while(startTurning) {
+    correctRotation();
+  }
+
+if (right == 1 && startTurning == 0) {
   //  Start moving straight for 46 inches
     if (y < 1.14) {
       md.setM1Speed(pwmR);
@@ -319,7 +369,7 @@ if (right == 1) {
     }
 }
 
-else {
+else if (right == 0 && startTurning == 0) {
   //  Start moving straight for 46 inches
     if (x < 0.53975) {
       md.setM1Speed(pwmR);
