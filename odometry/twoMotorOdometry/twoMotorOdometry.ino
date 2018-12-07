@@ -50,6 +50,7 @@ int turn = 0;
 
 int right = 1;
 int startTurning = 0;
+int hello = 1;
 
 
 // Initial PWMs
@@ -81,8 +82,8 @@ boolean done_turn  = false;
 
 void setup() {
   Serial.begin(115200);
-  right = Serial.read();
-  theta = pi/2 * Serial.read();
+  //right = Serial.read();
+  //theta = pi/2 * Serial.read();
   attachInterrupt(0, encoder_isr_right, CHANGE);
   attachInterrupt(1, encoder_isr_left, CHANGE);
   Serial.println("Dual MC33926 Motor Shield");
@@ -299,7 +300,9 @@ if (int(currentTime) % 50 == 0){
   //while(startTurning) {
    // correctRotation();
  // }
-
+  //if (int(currentTime) % 1000 == 0) {
+    //Serial.println(hello);
+  //}
   if (right == 1 && startTurning == 0) {
     //  Start moving straight for 46 inches
       if (y < 1.14) {
