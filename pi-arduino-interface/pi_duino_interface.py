@@ -1,21 +1,28 @@
 #!/user/bin/env python
 import serial
-from picamera import PiCamera
+#from picamera import PiCamera
 # import cv2
-from time import sleep
-# port = "/dev/ttyACM0"
+#from time import sleep
+#import numpy as np
+from picamera.array import PiRGBArray
+from picamera import PiCamera
+import time
+import cv2
+import numpy as np
+
+port = "/dev/ttyACM7"
 # port = "/dev/cu.usbmodem1431"
-port = "COM7"
+# port = "COM7"
 rate = 115200
 
 s1 = serial.Serial(port, rate)
 s1.flushInput()
 
-rightRotations = 0
-leftRotations = 0
-time = 0
+#rightRotations = 0
+#leftRotations = 0
+#time = 0
 
-circ = .22225
+#circ = .22225
 
 """
 RESULTS:
@@ -101,24 +108,20 @@ vl = 0.0016pwm - 0.0261
 # Don't use IDLE
 
 right = True
+camera = PiCamera()
+camera.resolution = (480, 272)
+camera.framerate = 5
+img = np.empty((272, 480, 3), dtype = np.uint8)
+width = 480
+height = 272
+img_center = int(width/2)
+lane_width = 390
 
 def processImage():
-	camera = PiCamera()
-	camera.resolution = (480, 272)
-	camera.framerate = 1
 	#camera.rotation = 180
 	#rawCapture = PiRGBArray(camera, size=(480, 272))
-	img = np.empty((272, 480, 3), dtype = np.uint8)
 	camera.capture(img, 'bgr')
-
-	width = 480
-	height = 272
-
-	img_center = int(width/2)
-
-	lane_width = 390
-
-	time.sleep(0.1)
+	#time.sleep(0.1)
 
 	for frame in camera.capture_continuous(img, format="bgr", use_video_port = True):
 		image = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
@@ -145,17 +148,17 @@ def processImage():
 		y_total = 0
 		w_total = 0
 
-		for i in range(0, len(yellow_pixels), 10):
-			y_total += yellow_pixels[i][0] # add all y-values
-		for i in range(0, len(white_pixels), 10):
+		for i in range(0, len(yellow_pixels), 1):
+			y_total += yellow_pixels[i][0] # add all x-values
+		for i in range(0, len(white_pixels), 1):
 			w_total += white_pixels[i][0]
 
 		try:
-			y_avg = int(y_total/(len(yellow_pixels)/10))
+			y_avg = int(y_total/(len(yellow_pixels)))
 		except ZeroDivisionError:
 			y_avg = 0
 		try:
-			w_avg = int(w_total/(len(white_pixels)/10))
+			w_avg = int(w_total/(len(white_pixels)))
 		except ZeroDivisionError:
 			w_avg = 0
 
@@ -179,20 +182,14 @@ def processImage():
 			lane_center = img_center - 10 # offset so both lines will show
 
 		turn_distance = img_center - lane_center
-			
+		print("--------------------------")
+		print("Y_total ", y_total, " len(y) ", len(yellow_pixels), " y_VG ", y_avg)
+		print("W_total ", w_total, " len(w) ", len(white_pixels), " w_VG ", w_avg)
+		print("lane center ", turn_distance)
+		print("--------------------------")
 
 		ctr_distance = 10 # acceptable amount of distance between the two lines
-
-		if turn_distance > ctr_distance:
-			# turn right
-			return 2
-		elif turn_distance < -1 * ctr_distance:
-			# turn left
-			return 1
-		else:
-			# don't turn
-			return 0
-
+		return turn_distance
 
 			# Wrote last time
 			# time.sleep(0.1)
@@ -208,11 +205,16 @@ def processImage():
 	# cv2.destroyAllWindows()
 
 def shouldTurn():
-	turn = processImage()
-	print(turn)
-	while(turn != 0):
-		s1.write(turn)
-		turn = processImage()
+    #turn = processImage()
+    #print(turn)
+    #while(turn != 0):
+    while(True):
+        turn = str(processImage())
+        #turn += ";"
+        s1.write(turn.encode("utf-8"))
+        s1.flush()
+        print(turn)
+        
 
 
 def initialization():
