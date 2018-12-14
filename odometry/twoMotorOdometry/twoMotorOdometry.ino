@@ -504,6 +504,7 @@ void straight() {
        updateLocation(); //look for bright not green as primary filter
        
        if (turnTowards == 350){
+         Serial.println("mde it");
         turn = 3;
          break; 
        }
@@ -549,7 +550,6 @@ void blindS(){
 
 void loop() {
   //currentTime = millis();
-  correctRotation();
   
  // if (turnTowards !=0){
  // qCount++;
@@ -563,16 +563,14 @@ void loop() {
  // }
   
   //turn = q[qCount];
-  turn = 0;
-  if(turn == 0 && turnTowards!=0){
-       
-   straight();
- //rightTurn();
-  //turn = 1;
- // rightTurn();
- // straight();
- 
- }
+  //turn = 0;
+  if(turn == 0){
+    correctRotation();
+    if (turnTowards!=0){
+       //Serial.println("started moving");
+       straight();
+    } 
+  }
  else if (turn == 1 && turnTowards!=0) {
    leftTurn();
    straight();
@@ -583,12 +581,12 @@ void loop() {
   straight(); 
  }
  else if (turn == 3){
-   while(turnTowards == 350){//create new array
-   md.setM1Speed(0);
-   md.setM2Speed(0);
-   correctRotation();
+   while(turnTowards < 400){//create new array
+     md.setM1Speed(0);
+     md.setM2Speed(0);
+     correctRotation();
    }
-   turn = q[++qCount];
+   //turn = q[++qCount];
  }
  
   

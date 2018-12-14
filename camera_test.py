@@ -71,20 +71,25 @@ q = deque()
 
 def findLine(img):
     line = img[120, :]
-##    print(line)
+    #print(line)
     return line
-    
+
 def findLastWhitePixel(line):
-    seen_white = False
+    counter = 0
+    red = False
     for index in range(160, 320): #160
         current_pixel = line[index]
+        if current_pixel > 130 and current_pixel < 150:
+            #print("red pixel")
+            counter += 1
+        if counter == 10:
+            print("red!")
+            red = True
+            break
         if current_pixel > 250:
             break
-##            if seen_white:
-##                break
-##        else:
-##            seen_white = True
-    return (index, current_pixel)
+    #print(line[160:])
+    return (index, current_pixel, red)
 
 def rgb2gray(img):
     return np.dot(img, [0.299, 0.587, 0.114])
@@ -109,20 +114,23 @@ with picamera.PiCamera() as camera:
         grayScaleImg = rgb2gray(img)
 ##        print(grayScaleImg.shape)
         line = findLine(grayScaleImg)
-        whitePixelIndex, pixelValue = findLastWhitePixel(line)
+        whitePixelIndex, pixelValue, isRed = findLastWhitePixel(line)
+        if isRed:
+            diff = 350
+        else:
         #print("Index: ", blackPixelIndex, "Value: ", pixelValue)
-        diff = 280 - whitePixelIndex #280
+            diff = 280 - whitePixelIndex #280
         diff = str(diff)
         diff = diff + ";"
         q.append(diff)
-        print("Index diff: ", diff, "Value: ", pixelValue)
+        #print("Index diff: ", diff, "Value: ", pixelValue)
         #if time.time() - start > 3 :
         val = q.popleft()
         s1.write(val.encode("utf-8"))
         s1.flush()
         #print(q)
 ##        sleep(0.5)
-##       camera.capture('/home/pippin_student/Desktop/cs-503/camera_test/image%s.jpg' %counter)
+  #      camera.capture('/home/pippin_student/Desktop/cs-503/camera_test/image%s.jpg' %counter)
 ##    print('Captured 120 images at %.2ffps' %(120 / (time.time() - start)))
 ##    camera.stop_preview()
 
