@@ -24,8 +24,8 @@ static int8_t lookup_table[] = {0,0,0,1,0,0,-1,0,0,-1,0,0,1,0,0,0};
 
 // Initializations
 float v_error = 0;
-float k = 0.004; //.0001 good//005;  //-.4  /0.002left
-float b = 0.001;//0.00015;//0.05;
+float k = 0.004; // 4; //.0001 good//005;  //-.4  /0.004 good for vref = 0.2
+float b = 0.001;//0.00015;//0.05;          / 0.001 good
 float delta_sleft = 0;
 float delta_sright = 0;
 float total_delta_sright = 0;
@@ -54,7 +54,7 @@ float cur_theta = 0;
 int right = 1;
 int startTurning = 0;
 int hello = 1;
-int q[] = {0,1,3}; 
+int q[50] ; //= new q[50]; 
 int qCount = 0;
 
 
@@ -101,6 +101,9 @@ void setup() {
   attachInterrupt(1, encoder_isr_left, CHANGE);
   Serial.println("Dual MC33926 Motor Shield");
   md.init();
+  readSM();
+  qCount = 0;
+  turn = q[0];
 }
 
 void encoder_isr_right() {
@@ -134,7 +137,17 @@ void stopIfFault() {
   }
 }
 
-
+void readSM(){
+  for (qCount;qCount <50;qCount++){
+  if (Serial.available() > 0) {
+  q[qCount] = Serial.parseInt();
+  //Serial.println(turnTowards);
+  }
+  else{
+   qCount--;
+  }
+  }
+}
 void correctRotation() {
   if (Serial.available() > 0) {
   turnTowards = Serial.parseInt();
@@ -187,6 +200,7 @@ void location() {
   last_enc_count_left = total_enc_count_left;
   delta_d = (delta_sleft + delta_sright) / 2;
   delta_theta = atan2((delta_sright - delta_sleft) / 2, wheel_base / 2);
+  /*
   if(!start_turn){
     if(right==1){
       theta = 0;
@@ -208,8 +222,8 @@ void location() {
       }
     }
   }
-  
-  //theta += delta_theta;
+  */
+  theta += delta_theta;
   theta_degrees = theta * (180 / pi);
   y += delta_d * cos(theta);
   x += delta_d * sin(theta);
@@ -264,7 +278,7 @@ void error_correction(){
   float v_error_last = v_error;
   float delta_v_error = 0;
   v_error = turnTowards;// / 200;
-  Serial.println(turnTowards);
+  //Serial.println(turnTowards);
   //Serial.println(v_error);
 
   delta_v_error = v_error - v_error_last;
@@ -367,19 +381,19 @@ void rightTurn (){
 void leftTurn () {
      cur_x = x;
      cur_y = y;
-     while(abs(x - cur_x) < 0.1 && abs(y - cur_y) < 0.1){        //adjust values to make work
+     while(abs(x - cur_x) < 0.06 && abs(y - cur_y) < 0.06){        //adjust values to make work
        md.setM1Speed(pwmR);
        md.setM2Speed(pwmL);
       // Serial.println(total_enc_count_right);
      //  Serial.println(total_enc_count_left);
-       currentTime = millis();
+      currentTime = millis();
       correctRotation();
       //updateLocation();
-       updateLocation(); //look for bright not green as primary filter
+      updateLocation(); //look for bright not green as primary filter
       }
       
-     done_turn = false;
-     start_turn = true;
+     //done_turn = false;
+     //start_turn = true;
      cur_theta = theta;
      cur_x = x;
      cur_y = y;
@@ -394,10 +408,11 @@ void leftTurn () {
         updateLocation();
       }
     // turn = 0;
-     done_turn = true;
-     start_turn = false;
-     cur_x = x;
-     cur_y = y;
+     //done_turn = true;
+     //start_turn = false;
+     cur_x = 0;
+     cur_y = 0;
+     /*
      while(abs(x - cur_x) < 0.5 && abs(y - cur_y) < 0.5){        //adjust values to make work
        md.setM1Speed(pwmR);
        md.setM2Speed(pwmL);
@@ -411,6 +426,7 @@ void leftTurn () {
      md.setM1Speed(0);
      md.setM2Speed(0);
      turn = q[++qCount];
+      */
 } 
 
 void straight() {
@@ -421,21 +437,29 @@ void straight() {
       //S = false;
       cur_x = x;
       cur_y = y;
-      while(abs(x - cur_x) < 0.68 && abs(y - cur_y) < 0.68){ //0.6){        //adjust values to make work
+      while(true){ //abs(x - cur_x) < 5 && abs(y - cur_y) < 5){ ;//0.68){ //0.6){        //adjust values to make work
        md.setM1Speed(pwmR);
        md.setM2Speed(pwmL);
       // Serial.println(total_enc_count_right);
      //  Serial.println(total_enc_count_left);
        currentTime = millis();
        correctRotation();
+       if (turnTowards == 350){
+        turn = 3;
+         break; 
+       }
+       else if (turnTowards = 400){
+        turn = q[++qCount];
+        break; 
+       }
        updateLocation(); //look for bright not green as primary filter
        
       }
          //S = true;
          md.setM1Speed(0);
          md.setM2Speed(0);
-         turn = q[++qCount];
-         Serial.print(turn);
+         
+       //  Serial.print(turn);
         // turn = 1;
         // q[qCount] = 3;
      // cur_x = 0;
@@ -443,6 +467,26 @@ void straight() {
       
 }
 
+void blindS(){
+ 
+      cur_x = x;
+      cur_y = y;
+  while(abs(x - cur_x) < 0.55 && abs(y - cur_y) < 0.55){ //0.6){        //adjust values to make work
+       pwmR = long((vref + 0.0776) / 0.0016) + long(16);
+       pwmL = long((vref + 0.0907) / 0.0016);
+       md.setM1Speed(pwmR);
+       md.setM2Speed(pwmL);
+      // Serial.println(total_enc_count_right);
+     //  Serial.println(total_enc_count_left);
+       currentTime = millis();
+       //correctRotation();
+       updateLocation(); //look for bright not green as primary filter
+       
+      }
+      Serial.print("here");
+      cur_x = 0;
+      cur_y = 0;
+}
 
 void loop() {
   //currentTime = millis();
@@ -454,15 +498,15 @@ void loop() {
   
  // turn = q[qCount];
  // Serial.println(turn);
-  if(qCount == 10){
-    qCount = 0; 
-  }
+ // if(qCount == 10){
+ //   qCount = 0; 
+ // }
  // }
   
-  turn = q[qCount];
+  //turn = q[qCount];
+  //turn = 0;
   if(turn == 0 && turnTowards!=0){
        
-  
    straight();
  //rightTurn();
   //turn = 1;
@@ -471,17 +515,21 @@ void loop() {
  
  }
  else if (turn == 1 && turnTowards!=0) {
-   rightTurn();
+   leftTurn();
+   straight();
    //Turnstraight();
  }
  else if (turn == 2 && turnTowards!=0){
-  leftTurn(); 
+  blindS();
+  straight(); 
  }
  else if (turn == 3){
-   //create new array
+   while(turnTowards == 350){//create new array
    md.setM1Speed(0);
    md.setM2Speed(0);
-   
+   correctRotation();
+   }
+   turn = q[++qCount];
  }
  
   

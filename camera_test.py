@@ -76,7 +76,7 @@ def findLine(img):
     
 def findLastWhitePixel(line):
     seen_white = False
-    for index in range(50, 320):
+    for index in range(160, 320):
         current_pixel = line[index]
         if current_pixel > 250:
             break
