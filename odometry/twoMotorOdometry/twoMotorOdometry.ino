@@ -49,7 +49,7 @@ float cur_y = 0;
 float cur_theta = 0;
 
 //int right = 0;
-//const int pingPin = 8;
+const int pingPin = 11;
 
 int right = 1;
 int startTurning = 0;
@@ -101,7 +101,7 @@ void setup() {
   attachInterrupt(1, encoder_isr_left, CHANGE);
   Serial.println("Dual MC33926 Motor Shield");
   md.init();
-  readSM();
+  //readSM();
   qCount = 0;
   turn = q[0];
 }
@@ -334,7 +334,63 @@ void updateLocation() {
     location();
   }
 }
+void ping(){
+  //if (int(currentTime) % 50 == 0){
+  long duration, inches;
 
+
+
+  // The PING))) is triggered by a HIGH pulse of 2 or more microseconds.
+
+  // Give a short LOW pulse beforehand to ensure a clean HIGH pulse:
+
+  pinMode(pingPin, OUTPUT);
+
+  digitalWrite(pingPin, LOW);
+
+  delayMicroseconds(2);
+
+
+  digitalWrite(pingPin, HIGH);
+
+  delayMicroseconds(5);
+
+  digitalWrite(pingPin, LOW);
+
+
+
+  // The same pin is used to read the signal from the PING))): a HIGH pulse
+
+  // whose duration is the time (in microseconds) from the sending of the ping
+
+  // to the reception of its echo off of an object.
+
+  pinMode(pingPin, INPUT);
+
+  duration = pulseIn(pingPin, HIGH, 5000);
+  // convert the time into a distance
+  //Serial.println("--------------");
+  //Serial.println(duration);
+  //Serial.println("--------------");
+  if(duration!=0 ){
+    inches = duration / 74 / 2;
+  }
+  else{
+   inches = 100; 
+  }
+ 
+  if(inches < 6){
+    vref = 0.1;
+    if(inches < 3){
+     vref = 0; 
+    }
+  } 
+  else{
+   vref = 0.2; 
+  }
+//}
+  
+}
 void rightTurn (){
  // if (R) {
     // cur_theta = theta;
@@ -437,27 +493,30 @@ void straight() {
       //S = false;
       cur_x = x;
       cur_y = y;
-      while(true){ //abs(x - cur_x) < 5 && abs(y - cur_y) < 5){ ;//0.68){ //0.6){        //adjust values to make work
+      while(true){ //abs(x - cur_x) < 5 && abs(y - cur_y) < 5){ //0.68){ //0.6){        //adjust values to make work  //true
        md.setM1Speed(pwmR);
        md.setM2Speed(pwmL);
       // Serial.println(total_enc_count_right);
      //  Serial.println(total_enc_count_left);
        currentTime = millis();
        correctRotation();
+       ping();
+       updateLocation(); //look for bright not green as primary filter
+       
        if (turnTowards == 350){
         turn = 3;
          break; 
        }
-       else if (turnTowards = 400){
+       else if (turnTowards == 400){
         turn = q[++qCount];
         break; 
        }
-       updateLocation(); //look for bright not green as primary filter
+       
        
       }
          //S = true;
-         md.setM1Speed(0);
-         md.setM2Speed(0);
+        // md.setM1Speed(0);
+       //  md.setM2Speed(0);
          
        //  Serial.print(turn);
         // turn = 1;
@@ -504,7 +563,7 @@ void loop() {
  // }
   
   //turn = q[qCount];
-  //turn = 0;
+  turn = 0;
   if(turn == 0 && turnTowards!=0){
        
    straight();

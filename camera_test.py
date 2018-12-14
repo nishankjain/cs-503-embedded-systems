@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import serial
 from collections import deque
 
-port = "/dev/ttyACM0"
+port = "/dev/ttyACM1"
 rate = 115200
 
 s1 = serial.Serial(port, rate)
@@ -76,7 +76,7 @@ def findLine(img):
     
 def findLastWhitePixel(line):
     seen_white = False
-    for index in range(160, 320):
+    for index in range(160, 320): #160
         current_pixel = line[index]
         if current_pixel > 250:
             break
@@ -125,4 +125,5 @@ with picamera.PiCamera() as camera:
 ##       camera.capture('/home/pippin_student/Desktop/cs-503/camera_test/image%s.jpg' %counter)
 ##    print('Captured 120 images at %.2ffps' %(120 / (time.time() - start)))
 ##    camera.stop_preview()
+
 
