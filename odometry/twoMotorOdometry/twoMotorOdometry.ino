@@ -24,7 +24,7 @@ static int8_t lookup_table[] = {0,0,0,1,0,0,-1,0,0,-1,0,0,1,0,0,0};
 
 // Initializations
 float v_error = 0;
-float k = 0.002; //.0001 good//005;  //-.4
+float k = 0.004; //.0001 good//005;  //-.4  /0.002left
 float b = 0.001;//0.00015;//0.05;
 float delta_sleft = 0;
 float delta_sright = 0;

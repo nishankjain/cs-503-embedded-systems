@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import serial
 from collections import deque
 
-port = "/dev/ttyACM1"
+port = "/dev/ttyACM0"
 rate = 115200
 
 s1 = serial.Serial(port, rate)
